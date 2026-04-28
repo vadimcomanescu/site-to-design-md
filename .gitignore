@@ -1,0 +1,6 @@
+design-viewport.png
+design-fullpage.png
+*.tmp.png
+.DS_Store
+node_modules/
+.claude/

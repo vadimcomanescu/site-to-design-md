@@ -1,0 +1,330 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>DESIGN.md viewer</title>
+<style>
+  :root { --fg:#0c0a08; --muted:#6b7280; --line:#e5e7eb; --bg:#fff; --panel:#fafafa; --accent:#0c0a08; }
+  * { box-sizing: border-box; }
+  html, body { margin:0; padding:0; height:100%; }
+  body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; color: var(--fg); background: var(--bg); }
+
+  /* Empty / drop fallback */
+  .empty { display:flex; align-items:center; justify-content:center; min-height:100vh; padding:32px; }
+  .drop { width:100%; max-width:560px; padding:80px 32px; border:2px dashed var(--line); border-radius:16px; text-align:center; transition:all .15s; }
+  .drop.over { border-color: var(--fg); background: var(--panel); }
+  .drop h1 { margin:0 0 8px; font-size:24px; font-weight:500; letter-spacing:-0.01em; }
+  .drop p { color: var(--muted); margin:0 0 20px; }
+  .btn { font:inherit; padding:8px 16px; border:1px solid var(--line); background:#fff; border-radius:6px; cursor:pointer; }
+  .btn:hover { background: var(--panel); }
+  .small { font-size:12px; color: var(--muted); }
+
+  /* Gallery layout */
+  .app { display:grid; grid-template-columns: 260px 1fr; min-height:100vh; }
+  .sidebar { border-right:1px solid var(--line); padding:24px 12px; background:var(--panel); position:sticky; top:0; max-height:100vh; overflow-y:auto; }
+  .sidebar h2 { font-size:11px; text-transform:uppercase; letter-spacing:.1em; color:var(--muted); margin:0 0 12px 8px; font-weight:600; }
+  .site-list { list-style:none; padding:0; margin:0; }
+  .site-list li { margin:0; }
+  .site-list button { width:100%; text-align:left; padding:10px 12px; border:0; background:transparent; border-radius:8px; cursor:pointer; font:inherit; color:var(--fg); display:block; }
+  .site-list button:hover { background:#eee; }
+  .site-list button.active { background: var(--fg); color: #fff; }
+  .site-list .nm { font-weight:500; font-size:14px; line-height:1.2; }
+  .site-list .sl { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size:11px; color: var(--muted); margin-top:3px; }
+  .site-list button.active .sl { color: rgba(255,255,255,0.65); }
+  .sidebar .hint { margin-top:16px; padding:12px; font-size:12px; color:var(--muted); border-top:1px solid var(--line); }
+
+  .main { overflow-y:auto; max-height:100vh; }
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 48px 32px 96px; }
+
+  .topbar { display:flex; justify-content:space-between; align-items:center; gap:16px; padding-bottom:16px; border-bottom:1px solid var(--line); margin-bottom:32px; font-size:13px; color:var(--muted); }
+  .topbar .file { font-family: ui-monospace, "SF Mono", Menlo, monospace; }
+
+  header.brand { padding: 16px 0 32px; }
+  header.brand h1 { margin:0 0 8px; font-size:48px; font-weight:500; letter-spacing:-0.015em; }
+  header.brand p { margin:0; color: var(--muted); font-size:18px; max-width:720px; line-height:1.5; }
+
+  section.tokens { margin-top:64px; }
+  section.tokens > h2 { margin:0 0 24px; font-size:11px; font-weight:600; letter-spacing:.1em; text-transform:uppercase; color: var(--muted); }
+
+  .swatches { display:grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap:16px; }
+  .swatch { border:1px solid var(--line); border-radius:10px; overflow:hidden; background:#fff; }
+  .swatch .chip { height:88px; }
+  .swatch .meta { padding:12px 14px; }
+  .swatch .name { font-weight:500; font-size:13px; margin-bottom:2px; }
+  .swatch .hex { font-family: ui-monospace, monospace; font-size:12px; color: var(--muted); text-transform:uppercase; }
+
+  .typespec { padding:20px 0; border-bottom:1px solid var(--line); }
+  .typespec:last-child { border-bottom:0; }
+  .typespec .label { font-family: ui-monospace, monospace; font-size:11px; color: var(--muted); margin-bottom:10px; }
+  .typespec .sample { display:block; }
+  .typespec .meta { font-family: ui-monospace, monospace; font-size:11px; color: var(--muted); margin-top:10px; }
+
+  .scale { display:flex; gap:24px; align-items:flex-end; flex-wrap:wrap; }
+  .scale > div { text-align:center; }
+  .scale .box { background: var(--fg); }
+  .scale .lbl { font-family: ui-monospace, monospace; font-size:11px; color: var(--muted); margin-top:8px; }
+
+  .comps { display:grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap:16px; }
+  .comp { padding:16px; border:1px solid var(--line); border-radius:10px; background: var(--panel); }
+  .comp .label { font-family: ui-monospace, monospace; font-size:11px; color: var(--muted); margin-bottom:12px; }
+  .comp .preview { display:flex; align-items:center; justify-content:center; min-height:80px; padding:20px; background:#fff; border:1px dashed var(--line); border-radius:8px; }
+  .comp .preview > * { max-width:100%; }
+
+  .markdown { line-height:1.65; font-size:15px; }
+  .markdown h2 { margin-top:56px; padding-top:24px; border-top:1px solid var(--line); font-size:24px; font-weight:500; letter-spacing:-0.005em; }
+  .markdown h3 { margin-top:28px; font-size:17px; }
+  .markdown code { font-family: ui-monospace, monospace; background:#f5f5f5; padding:2px 6px; border-radius:4px; font-size:.9em; }
+  .markdown ul { padding-left:20px; }
+  .markdown a { color:#2563eb; }
+  .markdown strong { font-weight:600; }
+
+  .err { color:#b91c1c; padding:16px; border:1px solid #fecaca; background:#fef2f2; border-radius:8px; }
+  .placeholder { padding:80px 32px; text-align:center; color:var(--muted); }
+
+  @media (max-width: 720px) {
+    .app { grid-template-columns: 1fr; }
+    .sidebar { position:static; max-height:none; border-right:0; border-bottom:1px solid var(--line); }
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="module">
+import yaml from 'https://esm.sh/js-yaml@4.1.0';
+import { marked } from 'https://esm.sh/marked@12.0.0';
+
+const root = document.getElementById('root');
+
+async function init() {
+  try {
+    const res = await fetch('/api/sites', { cache: 'no-store' });
+    if (!res.ok) throw new Error('no api');
+    const sites = await res.json();
+    showGallery(sites);
+  } catch {
+    showDropZone();
+  }
+}
+
+function showDropZone() {
+  root.innerHTML = `
+    <div class="empty">
+      <div class="drop" id="drop">
+        <h1>DESIGN.md viewer</h1>
+        <p>Drop a <code>DESIGN.md</code> file here, or pick one.<br>
+          <span class="small">Tip: run <code>node serve.mjs</code> to get a sidebar list of every site.</span></p>
+        <input type="file" id="file" accept=".md,.markdown,text/markdown" hidden>
+        <button class="btn" id="pickBtn">Pick file</button>
+      </div>
+    </div>`;
+  const drop = document.getElementById('drop');
+  const fileInput = document.getElementById('file');
+  document.getElementById('pickBtn').addEventListener('click', () => fileInput.click());
+  fileInput.addEventListener('change', async e => { const f = e.target.files[0]; if (f) await fromFile(f); });
+  ['dragenter','dragover'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('over'); }));
+  ['dragleave','drop'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('over'); }));
+  drop.addEventListener('drop', async e => { const f = e.dataTransfer.files[0]; if (f) await fromFile(f); });
+}
+
+async function fromFile(file) {
+  const text = await file.text();
+  const parsed = parseMarkdown(text);
+  if (!parsed) { root.innerHTML = `<div class="wrap"><div class="err">No YAML frontmatter found in ${escapeHTML(file.name)}</div></div>`; return; }
+  root.innerHTML = `<div class="main"><div class="wrap" id="content"></div></div>`;
+  renderInto(document.getElementById('content'), file.name, parsed.fm, parsed.body);
+}
+
+function showGallery(sites) {
+  if (sites.length === 0) {
+    root.innerHTML = `
+      <div class="app">
+        <aside class="sidebar">
+          <h2>Sites</h2>
+          <div class="hint">No <code>DESIGN.md</code> files found under <code>sites/</code> yet.</div>
+        </aside>
+        <main class="main"><div class="placeholder">Generate a DESIGN.md with the skill, then refresh.</div></main>
+      </div>`;
+    return;
+  }
+  const items = sites.map(s => `
+    <li><button data-path="${escapeAttr(s.path)}" data-slug="${escapeAttr(s.slug)}">
+      <div class="nm">${escapeHTML(s.name)}</div>
+      <div class="sl">${escapeHTML(s.slug)}</div>
+    </button></li>`).join('');
+  root.innerHTML = `
+    <div class="app">
+      <aside class="sidebar">
+        <h2>Sites (${sites.length})</h2>
+        <ul class="site-list">${items}</ul>
+        <div class="hint">Drop a <code>.md</code> anywhere to preview an unsaved file.</div>
+      </aside>
+      <main class="main"><div class="wrap" id="content"><div class="placeholder">Pick a site from the left.</div></div></main>
+    </div>`;
+  document.querySelectorAll('.site-list button').forEach(btn => {
+    btn.addEventListener('click', () => loadSite(btn));
+  });
+  // Drag-drop overlay anywhere
+  window.addEventListener('dragover', e => e.preventDefault());
+  window.addEventListener('drop', async e => {
+    e.preventDefault();
+    const f = e.dataTransfer?.files?.[0];
+    if (f && /\.(md|markdown)$/i.test(f.name)) await fromFile(f);
+  });
+  // Auto-select first
+  const initialSlug = location.hash.slice(1);
+  const initial = initialSlug ? document.querySelector(`.site-list button[data-slug="${CSS.escape(initialSlug)}"]`) : document.querySelector('.site-list button');
+  if (initial) initial.click();
+}
+
+async function loadSite(btn) {
+  document.querySelectorAll('.site-list button').forEach(x => x.classList.remove('active'));
+  btn.classList.add('active');
+  const path = btn.dataset.path;
+  const slug = btn.dataset.slug;
+  history.replaceState(null, '', '#' + slug);
+  const target = document.getElementById('content');
+  target.innerHTML = `<div class="placeholder">Loading…</div>`;
+  try {
+    const text = await fetch('/' + path, { cache: 'no-store' }).then(r => r.text());
+    const parsed = parseMarkdown(text);
+    if (!parsed) { target.innerHTML = `<div class="err">No YAML frontmatter in ${escapeHTML(path)}</div>`; return; }
+    renderInto(target, path, parsed.fm, parsed.body);
+  } catch (err) {
+    target.innerHTML = `<div class="err">Failed to load ${escapeHTML(path)}: ${escapeHTML(err.message)}</div>`;
+  }
+}
+
+function parseMarkdown(text) {
+  const m = text.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n([\s\S]*)$/);
+  if (!m) return null;
+  let fm;
+  try { fm = yaml.load(m[1]); } catch { return null; }
+  return { fm, body: m[2] };
+}
+
+function escapeHTML(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function escapeAttr(s) { return escapeHTML(s); }
+
+function lookup(path, fm) {
+  const parts = path.split('.');
+  let cur = fm;
+  for (const p of parts) { if (cur && typeof cur === 'object') cur = cur[p]; else return undefined; }
+  return cur;
+}
+function resolveValue(value, fm) {
+  if (typeof value !== 'string') return value;
+  const ref = value.match(/^\{([^}]+)\}$/);
+  if (ref) { const v = lookup(ref[1], fm); return v === undefined ? value : v; }
+  return value.replace(/\{([^}]+)\}/g, (_, p) => { const v = lookup(p, fm); return typeof v === 'string' ? v : _; });
+}
+function styleFromTypography(t) {
+  if (!t || typeof t !== 'object') return '';
+  let s = '';
+  if (t.fontFamily) s += `font-family:${t.fontFamily};`;
+  if (t.fontSize) s += `font-size:${t.fontSize};`;
+  if (t.fontWeight) s += `font-weight:${t.fontWeight};`;
+  if (t.lineHeight) s += `line-height:${t.lineHeight};`;
+  if (t.letterSpacing) s += `letter-spacing:${t.letterSpacing};`;
+  if (t.textTransform) s += `text-transform:${t.textTransform};`;
+  return s;
+}
+
+function renderInto(target, filename, fm, body) {
+  const colors = fm.colors || {};
+  const typography = fm.typography || {};
+  const rounded = fm.rounded || {};
+  const spacing = fm.spacing || {};
+  const components = fm.components || {};
+
+  const swatchesHTML = Object.entries(colors).map(([k, v]) => `
+    <div class="swatch">
+      <div class="chip" style="background:${escapeAttr(v)}"></div>
+      <div class="meta">
+        <div class="name">${escapeHTML(k)}</div>
+        <div class="hex">${escapeHTML(v)}</div>
+      </div>
+    </div>`).join('');
+
+  const typeHTML = Object.entries(typography).map(([k, v]) => {
+    const style = styleFromTypography(v);
+    const meta = Object.entries(v || {}).map(([kk, vv]) => `${kk}: ${vv}`).join(' · ');
+    return `<div class="typespec">
+      <div class="label">${escapeHTML(k)}</div>
+      <span class="sample" style="${style}">The quick brown fox jumps over the lazy dog</span>
+      <div class="meta">${escapeHTML(meta)}</div>
+    </div>`;
+  }).join('');
+
+  const radiusHTML = Object.entries(rounded).map(([k, v]) => `
+    <div>
+      <div class="box" style="width:80px;height:80px;border-radius:${escapeAttr(v)}"></div>
+      <div class="lbl">${escapeHTML(k)} · ${escapeHTML(v)}</div>
+    </div>`).join('');
+
+  const spacingHTML = Object.entries(spacing).map(([k, v]) => {
+    const px = typeof v === 'number' ? v + 'px' : v;
+    return `<div>
+      <div class="box" style="width:${escapeAttr(px)};height:24px"></div>
+      <div class="lbl">${escapeHTML(k)} · ${escapeHTML(px)}</div>
+    </div>`;
+  }).join('');
+
+  const compHTML = Object.entries(components).map(([k, props]) => {
+    const r = {};
+    for (const [pk, pv] of Object.entries(props || {})) r[pk] = resolveValue(pv, fm);
+    let style = '';
+    if (r.backgroundColor) style += `background:${r.backgroundColor};`;
+    if (r.textColor) style += `color:${r.textColor};`;
+    if (r.rounded) style += `border-radius:${r.rounded};`;
+    if (r.padding) style += `padding:${r.padding};`;
+    if (r.height) style += `height:${typeof r.height === 'number' ? r.height + 'px' : r.height};`;
+    if (r.width) style += `width:${typeof r.width === 'number' ? r.width + 'px' : r.width};`;
+    if (typeof r.typography === 'object' && r.typography) style += styleFromTypography(r.typography);
+
+    const isButton = /button|cta/i.test(k);
+    const isInput = /input|field/i.test(k);
+    const isCard = /card|tile|panel|footer|hero/i.test(k);
+    const isBadge = /badge|tag|chip|pill/i.test(k);
+    const isNav = /nav|link|menu/i.test(k);
+    const isEyebrow = /eyebrow|label/i.test(k);
+    const labelText = k.replace(/[-_]/g, ' ');
+
+    let preview;
+    if (isButton) preview = `<button style="border:0;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;${style}">${escapeHTML(labelText)}</button>`;
+    else if (isInput) preview = `<input placeholder="placeholder@example.com" style="border:1px solid #e5e7eb;outline:none;width:240px;${style}">`;
+    else if (isBadge) preview = `<span style="display:inline-block;${style}">${escapeHTML(labelText)}</span>`;
+    else if (isEyebrow) preview = `<span style="${style}">${escapeHTML(labelText)}</span>`;
+    else if (isNav) preview = `<a href="javascript:void(0)" style="text-decoration:none;${style}">${escapeHTML(labelText)}</a>`;
+    else if (isCard) preview = `<div style="min-width:200px;min-height:80px;${style}">${escapeHTML(labelText)}</div>`;
+    else preview = `<div style="${style}">${escapeHTML(labelText)}</div>`;
+
+    return `<div class="comp">
+      <div class="label">${escapeHTML(k)}</div>
+      <div class="preview">${preview}</div>
+    </div>`;
+  }).join('');
+
+  const versionTag = fm.version ? `· version <code>${escapeHTML(fm.version)}</code>` : '';
+  target.innerHTML = `
+    <div class="topbar">
+      <span class="file">${escapeHTML(filename)} ${versionTag}</span>
+    </div>
+    <header class="brand">
+      <h1>${escapeHTML(fm.name || 'Untitled')}</h1>
+      <p>${escapeHTML(fm.description || '')}</p>
+    </header>
+    ${Object.keys(colors).length ? `<section class="tokens"><h2>Colors</h2><div class="swatches">${swatchesHTML}</div></section>` : ''}
+    ${Object.keys(typography).length ? `<section class="tokens"><h2>Typography</h2>${typeHTML}</section>` : ''}
+    ${Object.keys(rounded).length ? `<section class="tokens"><h2>Rounded</h2><div class="scale">${radiusHTML}</div></section>` : ''}
+    ${Object.keys(spacing).length ? `<section class="tokens"><h2>Spacing</h2><div class="scale">${spacingHTML}</div></section>` : ''}
+    ${Object.keys(components).length ? `<section class="tokens"><h2>Components</h2><div class="comps">${compHTML}</div></section>` : ''}
+    <section class="tokens markdown">${marked.parse(body)}</section>`;
+  target.scrollTop = 0;
+  target.parentElement && (target.parentElement.scrollTop = 0);
+}
+
+init();
+</script>
+</body>
+</html>

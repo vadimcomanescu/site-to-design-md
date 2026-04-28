@@ -1,0 +1,31 @@
+{
+  "name": "site-to-design-md",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Agent skill that generates a DESIGN.md from any live website URL, plus a zero-dependency local viewer for browsing the results.",
+  "scripts": {
+    "start": "node serve.mjs"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vadimcomanescu/site-to-design-md.git"
+  },
+  "homepage": "https://github.com/vadimcomanescu/site-to-design-md#readme",
+  "bugs": {
+    "url": "https://github.com/vadimcomanescu/site-to-design-md/issues"
+  },
+  "keywords": [
+    "design-system",
+    "design-md",
+    "design-tokens",
+    "agent-skill",
+    "claude-code",
+    "codex"
+  ],
+  "author": "Vadim Comanescu"
+}
