@@ -7,13 +7,12 @@ colors:
   on-primary: "#0C0A08"
   secondary: "#2A2A2A"
   on-secondary: "#FFFFFF"
+  background: "#FFFFFF"
+  on-background: "#0C0A08"
   surface: "#F4F2F0"
   surface-alt: "#F7FAFC"
-  background: "#FFFFFF"
   on-surface: "#0C0A08"
-  on-background: "#0C0A08"
   muted: "#4A5568"
-  outline: "#2B2E35"
   inverse-surface: "#000000"
   on-inverse-surface: "#FFFFFF"
   badge-tint: "#E1E7EE"
@@ -37,6 +36,10 @@ spacing:
   xl: 64px
   xxl: 96px
 components:
+  page:
+    backgroundColor: "{colors.background}"
+    textColor: "{colors.on-background}"
+    typography: "{typography.body-md}"
   button-primary:
     backgroundColor: "{colors.primary}"
     textColor: "{colors.on-primary}"
@@ -56,18 +59,20 @@ components:
     typography: "{typography.nav}"
     padding: 8px 12px
   input:
-    backgroundColor: transparent
+    backgroundColor: "{colors.background}"
     textColor: "{colors.muted}"
     typography: "{typography.body-sm}"
     rounded: "{rounded.sm}"
-    padding: 0px 0px
+    padding: 0 16px
     height: 40px
   card:
     backgroundColor: "{colors.surface}"
+    textColor: "{colors.on-surface}"
     rounded: "{rounded.md}"
     padding: 24px
   card-cool:
     backgroundColor: "{colors.surface-alt}"
+    textColor: "{colors.on-surface}"
     rounded: "{rounded.md}"
     padding: 24px
   card-dark:
@@ -108,7 +113,7 @@ Lausanne is the entire system, top to bottom — a contemporary geometric grotes
 
 ## Elevation & Depth
 
-Surfaces are flat. There are no drop shadows on cards or buttons — depth is communicated through subtle background tint shifts (`surface` vs `surface-alt` vs `card-dark`) and hairline 1px outlines (#2B2E35) on certain framed elements. The hero illustration uses layered isometric product screens to imply depth without ever leaving the flat aesthetic. The overall feel is paper-flat, not glassy or skeuomorphic.
+Surfaces are flat. There are no drop shadows on cards or buttons — depth is communicated through subtle background tint shifts (`surface` vs `surface-alt` vs `card-dark`) and the occasional 1px hairline border on framed product mockups. The hero illustration uses layered isometric product screens to imply depth without ever leaving the flat aesthetic. The overall feel is paper-flat, not glassy or skeuomorphic.
 
 ## Shapes
 

@@ -50,6 +50,21 @@ The agent will:
 
 See [SKILL.md](SKILL.md) for the workflow and [references/design-md-spec.md](references/design-md-spec.md) for the format spec. A worked example output is in [references/example-design.md](references/example-design.md).
 
+## Validation & interop
+
+Output is validated against the official [`@google/design.md`](https://github.com/google-labs-code/design.md) linter as part of the skill workflow:
+
+```bash
+npx --yes @google/design.md lint sites/<brand-slug>/DESIGN.md
+```
+
+The same CLI converts a DESIGN.md into other formats:
+
+```bash
+npx --yes @google/design.md export --format tailwind sites/<slug>/DESIGN.md > tailwind.theme.json
+npx --yes @google/design.md export --format dtcg     sites/<slug>/DESIGN.md > tokens.json
+```
+
 ## Viewer
 
 A zero-dependency local viewer ships with the repo. It indexes every `sites/*/DESIGN.md` automatically and renders the YAML frontmatter as live color swatches, type specimens (in the actual font/size/weight), spacing and radius scales, and styled component previews — followed by the prose body.

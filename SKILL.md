@@ -1,7 +1,7 @@
 ---
 name: site-to-design-md
-description: Generate a DESIGN.md from a live website URL, following Google's open DESIGN.md spec. The agent captures a viewport screenshot, samples colors and typography directly from the pixels, and emits YAML frontmatter (tokens) plus canonical markdown sections. Triggers on "extract design system from <url>", "generate DESIGN.md from <site>", "site to design md", "design audit of <url>", or any request to derive a design-system document from a live web page.
-allowed-tools: Bash(agent-browser:*), Bash(npx agent-browser:*), Read, Write, Edit
+description: Generate a DESIGN.md from a live website URL, following Google's open DESIGN.md spec. The agent captures a viewport screenshot, samples colors and typography directly from the pixels, emits YAML frontmatter (tokens) plus canonical markdown sections, and validates the output with the official `@google/design.md` linter. Triggers on "extract design system from <url>", "generate DESIGN.md from <site>", "site to design md", "design audit of <url>", or any request to derive a design-system document from a live web page.
+allowed-tools: Bash(agent-browser:*), Bash(npx agent-browser:*), Bash(npx @google/design.md:*), Read, Write, Edit
 ---
 
 # site-to-design-md
@@ -13,10 +13,12 @@ The full format spec is in [references/design-md-spec.md](references/design-md-s
 ## Workflow
 
 1. **Capture** a viewport screenshot of the URL at 1920×1080. Optionally capture a full-page screenshot too.
-2. **(Optional) Scrape** the page text to inform brand voice and copy. Skip if not available — colors/typography MUST come from the pixels regardless.
+2. **(Optional) Scrape** the page text and computed styles to inform brand voice, copy, and exact typography metrics. Skip if not available — colors/typography MUST come from the pixels regardless.
 3. **Read** the screenshot via your vision capability. This is the primary source of truth for tokens.
 4. **Generate** DESIGN.md following [references/design-md-spec.md](references/design-md-spec.md).
-5. **Write** to `DESIGN.md` in the working directory (or the path the user specified).
+5. **Write** to `sites/<brand-slug>/DESIGN.md` in the working directory.
+6. **Validate** with the official linter (see [Validation](#validation)). Aim for zero warnings, zero errors.
+7. **Iterate** if the linter flags anything: fix orphaned tokens, broken refs, contrast issues, or section-order problems, then re-lint.
 
 ## Capturing screenshots
 
@@ -65,9 +67,41 @@ Write the result to `sites/<brand-slug>/DESIGN.md` in the current working direct
 
 After writing, confirm the path and surface 1–2 notable tokens (e.g. the primary color hex and the heading typeface) so the user can sanity-check at a glance.
 
+## Validation
+
+After writing, run the official linter from `@google/design.md`:
+
+```bash
+npx --yes @google/design.md lint sites/<brand-slug>/DESIGN.md
+```
+
+The linter reports JSON with `findings[]` (severity: `error` | `warning` | `info`) and a `summary`. Common findings and how to resolve them:
+
+- **`broken-ref`** (error): a `{path.to.token}` reference does not resolve. Either define the missing token or change the reference to a defined one.
+- **`orphaned-tokens`** (warning): a color token is defined but never referenced by any component. Wire it into a component (e.g. `card.textColor: "{colors.on-surface}"`) or omit it. The page-level `background`/`on-background` can be wired through a `page` component.
+- **`contrast-ratio`** (warning): a component's `backgroundColor`/`textColor` pair is below WCAG AA (4.5:1). Adjust the pairing rather than the brand color.
+- **`missing-primary`** (warning): no `primary` color token. The spec strictly recommends defining `primary`.
+- **`section-order`** (warning): `##` headings are out of canonical order. Reorder to match the spec.
+
+The goal is **0 errors, 0 warnings** before declaring the file done. The `info`-level token-count summary is fine.
+
+Other useful CLI commands:
+
+```bash
+npx --yes @google/design.md spec                                       # print the upstream spec
+npx --yes @google/design.md export --format tailwind sites/<slug>/DESIGN.md > tailwind.theme.json
+npx --yes @google/design.md export --format dtcg     sites/<slug>/DESIGN.md > tokens.json
+npx --yes @google/design.md diff sites/<slug>/DESIGN.md sites/<slug>/DESIGN-v2.md
+```
+
 ## Viewing the result
 
-The repo ships a single-file viewer at `viewer.html`. To view a generated DESIGN.md visually (live color swatches, type specimens, rendered components, parsed markdown body), the user opens `viewer.html` in a browser and drops the `.md` file onto the drop zone — no server needed.
+The repo ships a single-file viewer.
+
+- **Gallery mode**: run `npm start` (or `node serve.mjs`) at the repo root. A local server scans `sites/` and exposes a sidebar list; the browser opens automatically at <http://localhost:4173/>.
+- **Standalone mode**: open `viewer.html` directly via `file://` and drop a `DESIGN.md` onto the drop zone — no server needed, but no sidebar list either.
+
+The viewer renders YAML frontmatter as live color swatches, type specimens (in the actual font/size/weight), spacing and radius scales, and styled component previews, then renders the markdown body underneath.
 
 ## Cleanup
 
